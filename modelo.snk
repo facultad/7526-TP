@@ -1,0 +1,207 @@
+[Modelo]
+
+;----------------------------------------------------------------------
+;----------------------------------------------------------------------
+;--------------------- D E F I N I C I O N E S ------------------------
+;----------------------------------------------------------------------
+;----------------------------------------------------------------------
+
+;----------------------------------------------------------------------
+; Funciones
+;----------------------------------------------------------------------
+
+; Obtención del tipo de trámite
+tipo_tramite function rn2, d5
+.3,1 / .55,2 / .7,3 / .9,4 / 1,5
+
+; Obtención de la cantidad de trámites a realizar
+cant_tramites function p$tipo_tramite, d2
+4,1 / 5,2
+
+; Obtención del destino dependiendo del tipo de trámite
+destino_tramite function p$tipo_tramite, d5
+1,ventanillas/2,mesa_entrada/3,ventanillas/4,mesa_entrada/5,sel_tramite
+
+; Obtención de la media de mesa de entradas
+med_mesa function p$tipo_tramite, d3
+2,180 / 4,120 / 5,300
+
+; Obtención de la varianza de mesa de entradas
+var_mesa function p$tipo_tramite, d1
+5,30
+var_mesa variable fn$var_mesa
+
+; Obtención de la media de ventanillas
+med_vent function p$tipo_tramite, d3
+2,120 / 4,180 / 5,120
+
+; Obtención de la varianza de ventanillas
+var_vent function p$tipo_tramite, d1
+5,30
+var_vent variable fn$var_vent
+
+; Definición de prioridad
+prioridad function rn3, d2
+.02,100 / 1,50
+
+; En las ventanillas hay 2 personas atendiendo desde las 8 hasta las
+; 10 horas, 3 desde las 10 hasta las 11, 4 desde las 11 hasta las 13,
+; y 2 desde las 13 hasta las 15:30.
+cant_vent function ac1, d4
+7200,2 / 10800,3 / 18000,4 / 27000,2 
+
+
+;----------------------------------------------------------------------
+; Tablas
+;----------------------------------------------------------------------
+
+; El tiempo de permanencia en el edificio.
+tiempo_permanenecia table mp1, 600, 300, 10
+
+; La gente en la oficina, visto por cada persona que llega al 5º piso.
+cant_pers_ofi table x$cant_pers_ofi, 10, 10, 20
+
+; El tiempo en cola antes de ser atendidos en la mesa de entradas.
+tiempo_cola_mesa qtable mesa_entrada, 60, 60, 10
+
+; El tiempo que tardan en el sellado (desde que se ponen en esa cola,
+; hasta que se retiran con su copia sellada).
+tiempo_sellado table mp$tiempo_sellado, 60, 60, 10
+
+
+;----------------------------------------------------------------------
+; Storage
+;----------------------------------------------------------------------
+
+; Definición de mesa de entrada
+mesa_entrada storage 3
+
+
+;----------------------------------------------------------------------
+;----------------------------------------------------------------------
+;-------------------------- P R O C E S O -----------------------------
+;----------------------------------------------------------------------
+;----------------------------------------------------------------------
+
+;----------------------------------------------------------------------
+; Inicialización
+;----------------------------------------------------------------------
+
+initial x$cant_pers_ofi, 0 
+
+
+;----------------------------------------------------------------------
+; Comienzan a llegar a las 8 horas, cada 4 +/- 2 minutos
+;----------------------------------------------------------------------
+generate 240, 120
+transfer ,caudal_ppal,
+
+;----------------------------------------------------------------------
+; También llegan, desde las 12 horas, uno cada 150 +/- 90 segundos, y
+; se unen al caudal principal.
+;----------------------------------------------------------------------
+generate 150, 90, 14400
+transfer ,caudal_ppal,
+
+;----------------------------------------------------------------------
+; Todos ellos tardan 20 +/- 8 seg en cruzar el hall de entrada, entre
+; 5 y 13 minutos en subir la escalera, y de 20 a 40 segundos en llegar
+; a la oficina y ponerse en la cola correspondiente.
+;----------------------------------------------------------------------
+caudal_ppal priority fn$prioridad
+advance 20, 8
+advance 540, 240
+advance 30, 10
+savevalue cant_pers_ofi+, 1
+tabulate cant_pers_ofi
+
+;----------------------------------------------------------------------
+; Selección de tipo de trámite
+;----------------------------------------------------------------------
+assign tipo_tramite, fn$tipo_tramite
+assign cant_tramites, fn$cant_tramites
+transfer ,fn$destino_tramite,
+
+;----------------------------------------------------------------------
+; En la mesa de entradas hay 3 personas atendiendo, en forma
+; indistinta, una única cola.
+;----------------------------------------------------------------------
+mesa_entrada queue mesa_entrada
+enter mesa_entrada
+depart mesa_entrada
+advance fn$med_mesa, v$var_mesa
+leave mesa_entrada
+assign cant_tramites-, 1
+test e p$cant_tramites, 0, ventanillas
+;loop p$cant_tramites, ventanillas
+transfer ,sellado,
+
+;----------------------------------------------------------------------
+; Se forma una cola distinta para cada ventanilla, y los que vienen
+; eligen la ventanilla desocupada o de menor cola, pero no cambian de
+; cola luego, aunque se abra otra ventanilla. Cuando termina el horario
+; de atención de una, termina de atender a todos los que tiene en cola
+; antes de cerrar, pero no acepta otros.
+;----------------------------------------------------------------------
+ventanillas test le ac1, 27000, fin_ventanilla
+select nu ventanilla, 1, fn$cant_vent, , , cola_vent
+vent_seleccionada queue p$ventanilla
+seize p$ventanilla
+depart p$ventanilla
+advance fn$med_vent, v$var_vent
+release p$ventanilla
+
+fin_ventanilla assign cant_tramites-, 1
+test e p$cant_tramites, 0, mesa_entrada
+;fin_ventanilla loop p$cant_tramites, mesa_entrada
+transfer ,sellado,
+
+; Selecciona la menor cola en ventanillas
+cola_vent select min ventanilla, 1, fn$cant_vent, , q
+transfer ,vent_seleccionada,
+
+;----------------------------------------------------------------------
+; Al terminar, todos pasan por otra ventanilla de sellado donde tardan
+; entre 30 y 90 segundos en registrar la fecha y hora del trámite. Hay
+; un empleado que realiza esta tarea, con una sola cola.
+;----------------------------------------------------------------------
+sellado mark tiempo_sellado
+queue sellado
+seize sellado
+depart sellado
+advance 60, 30
+release sellado
+tabulate tiempo_sellado
+
+;----------------------------------------------------------------------
+; Luego de ésto salen tardando de 20 a 40 seg en ir a la escalera, de
+; 4 a 9 minutos en bajar los 5 pisos, y 20 +/- 8 seg en salir por la
+; puerta, momento en el cual se considera que dejan el sistema.
+;----------------------------------------------------------------------
+savevalue cant_pers_ofi-, 1
+advance 30, 10
+advance 390, 150
+advance 20, 8
+tabulate tiempo_permanenecia
+terminate
+
+;----------------------------------------------------------------------
+; En caso de tener que ir a mesa de entrada o ventanillas elije a cuál
+; ir antes.
+;----------------------------------------------------------------------
+sel_tramite transfer ,mesa_entrada, ; suponemos que mesa de entrada va siempre antes que las ventanillas
+
+;----------------------------------------------------------------------
+; Simular de 8:00 a 16:00
+;----------------------------------------------------------------------
+; start 8
+generate 3600
+terminate 1
+
+<\F>
+Nombre=
+Descripcion=
+Version=
+Autor=
+Empresa=
+Opciones=
