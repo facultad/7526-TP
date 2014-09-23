@@ -131,9 +131,7 @@ enter mesa_entrada
 depart mesa_entrada
 advance fn$med_mesa, v$var_mesa
 leave mesa_entrada
-assign cant_tramites-, 1
-test e p$cant_tramites, 0, ventanillas
-;loop p$cant_tramites, ventanillas
+loop cant_tramites, ventanillas
 transfer ,sellado,
 
 ;----------------------------------------------------------------------
@@ -151,9 +149,7 @@ depart p$ventanilla
 advance fn$med_vent, v$var_vent
 release p$ventanilla
 
-fin_ventanilla assign cant_tramites-, 1
-test e p$cant_tramites, 0, mesa_entrada
-;fin_ventanilla loop p$cant_tramites, mesa_entrada
+fin_ventanilla loop cant_tramites, mesa_entrada
 transfer ,sellado,
 
 ; Selecciona la menor cola en ventanillas
