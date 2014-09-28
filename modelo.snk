@@ -120,6 +120,7 @@ tabulate cant_pers_ofi
 ;----------------------------------------------------------------------
 assign tipo_tramite, fn$tipo_tramite
 assign cant_tramites, fn$cant_tramites
+assign tramites_hechos, p$tramites_hechos
 transfer ,fn$destino_tramite,
 
 ;----------------------------------------------------------------------
@@ -131,6 +132,7 @@ enter mesa_entrada
 depart mesa_entrada
 advance fn$med_mesa, v$var_mesa
 leave mesa_entrada
+assign tramites_hechos+, 1
 loop cant_tramites, ventanillas
 transfer ,sellado,
 
@@ -148,6 +150,7 @@ seize p$ventanilla
 depart p$ventanilla
 advance fn$med_vent, v$var_vent
 release p$ventanilla
+assign tramites_hechos+, 1
 
 fin_ventanilla loop cant_tramites, mesa_entrada
 transfer ,sellado,
@@ -161,7 +164,9 @@ transfer ,vent_seleccionada,
 ; entre 30 y 90 segundos en registrar la fecha y hora del trámite. Hay
 ; un empleado que realiza esta tarea, con una sola cola.
 ;----------------------------------------------------------------------
-sellado mark tiempo_sellado
+; En caso que no haya hecho trámites, entonces no pasa por sellado
+sellado test g p$tramites_hechos, 0, salida
+mark tiempo_sellado
 queue sellado
 seize sellado
 depart sellado
@@ -174,7 +179,7 @@ tabulate tiempo_sellado
 ; 4 a 9 minutos en bajar los 5 pisos, y 20 +/- 8 seg en salir por la
 ; puerta, momento en el cual se considera que dejan el sistema.
 ;----------------------------------------------------------------------
-savevalue cant_pers_ofi-, 1
+salida savevalue cant_pers_ofi-, 1
 advance 30, 10
 advance 390, 150
 advance 20, 8
