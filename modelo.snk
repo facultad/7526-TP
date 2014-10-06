@@ -56,7 +56,7 @@ cant_vent function ac1, d4
 ;----------------------------------------------------------------------
 
 ; El tiempo de permanencia en el edificio.
-tiempo_permanenecia table mp1, 600, 300, 10
+tiempo_permanenecia table m1, 600, 300, 10
 
 ; La gente en la oficina, visto por cada persona que llega al 5º piso.
 cant_pers_ofi table x$cant_pers_ofi, 10, 10, 20
