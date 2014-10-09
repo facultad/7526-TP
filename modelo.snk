@@ -74,7 +74,7 @@ tiempo_sellado table mp$tiempo_sellado, 60, 60, 10
 ;----------------------------------------------------------------------
 
 ; Definición de mesa de entrada
-mesa_entrada storage 3
+mesa_entrada storage 2
 
 
 ;----------------------------------------------------------------------
