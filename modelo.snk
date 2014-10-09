@@ -108,7 +108,6 @@ transfer ,caudal_ppal,
 ;----------------------------------------------------------------------
 caudal_ppal priority fn$prioridad
 advance 20, 8
-advance 540, 240
 advance 30, 10
 savevalue cant_pers_ofi+, 1
 tabulate cant_pers_ofi
@@ -179,7 +178,6 @@ tabulate tiempo_sellado
 ;----------------------------------------------------------------------
 salida savevalue cant_pers_ofi-, 1
 advance 30, 10
-advance 390, 150
 advance 20, 8
 tabulate tiempo_permanenecia
 terminate
