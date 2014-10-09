@@ -44,11 +44,9 @@ var_vent variable fn$var_vent
 prioridad function rn3, d2
 .02,100 / 1,50
 
-; En las ventanillas hay 2 personas atendiendo desde las 8 hasta las
-; 10 horas, 3 desde las 10 hasta las 11, 4 desde las 11 hasta las 13,
-; y 2 desde las 13 hasta las 15:30.
+; En las ventanillas hay una única persona atendiendo
 cant_vent function ac1, d4
-7200,2 / 10800,3 / 18000,4 / 27000,2 
+7200,1 / 10800,1 / 18000,1 / 27000,1 
 
 
 ;----------------------------------------------------------------------
